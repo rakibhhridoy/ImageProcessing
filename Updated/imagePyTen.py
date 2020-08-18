@@ -1,16 +1,9 @@
                                 
                                 ####---- Python Part ----####
-
-
-
-
 import os
 import zipfile
-
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-
-
 
 
                         #**** If File is Zipped ****#
