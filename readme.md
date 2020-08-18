@@ -3,7 +3,7 @@
 ![img1](i0.png)
 
 ### *Function Available*
->Unzipping File  <br>
+>unzipping_file  <br>
 >joining_directory_to_each_other_binary_class <br>
 >training_filename_show <br>
 >train_validation_size <br>
