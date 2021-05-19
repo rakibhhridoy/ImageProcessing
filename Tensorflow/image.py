@@ -6,7 +6,7 @@ from tensorflow.keras.preprocessing.image import img_to_array, load_img
 from google.colab import files
 import matplotlib.pyplot as plt
 from keras.preprocessing import image
-
+from keras.models import load_model
 
 
 
@@ -16,79 +16,127 @@ from keras.preprocessing import image
 
                     ###----- Labeled Image Resize || Augmentation || Both  -----### 
 
+class ImageTensorProcessing:
 
+    """
+    Images should be labeled. If not labeled, then it can't predict accurately.. 
+    This Class is combined form of doing boring steps in Tensorflow to predict classification problems..
+    The Class has step by step processes as a functions.
 
+    Steps:
+        rescale()          --> rescale the image
+        rescale_augment()  --> rescale the image using augmentation
 
-def resize_labeled_images(train_dir, validation_dir, rescale, class_type, target_size, batch_size):
-    
-    
+    """
 
-    # All images will be rescaled by 1./255.
-    train_datagen = ImageDataGenerator( rescale = 1.0/ rescale )
-    test_datagen  = ImageDataGenerator( rescale = 1.0/ rescale)
+    def __init__(self, train_dir, validation_dir, class_type= None, target_size= None, batch_size= None):
+        self.train_dir = train_dir
+        self.validation_dir = validation_dir
+        self.class_type = class_type
+        self.target_size = target_size
+        self.batch_size = batch_size
 
-    # --------------------
-    # Flow training images in batches of 20 using train_datagen generator
-    # --------------------
-    train_generator = train_datagen.flow_from_directory(train_dir,
-                                                        batch_size= batch_size,
-                                                        class_mode=  class_type,
-                                                        target_size= target_size)     
-    # --------------------
-    # Flow validation images in batches of 20 using test_datagen generator
-    # --------------------
-    validation_generator =  test_datagen.flow_from_directory(validation_dir,
-                                                            batch_size= batch_size,
-                                                            class_mode  =  class_type,
-                                                            target_size = target_size)
-    
-    return train_generator , validation_generator
-
-
+        self.train_generator = None
+        self.valid_generator = None
+        self.train_aug_generator = None
+        self.valid_aug_generator = None
+        self.history = None
 
     
-def resize_labeled_images_augmentation(train_dir, validation_dir, target_size, batch_size, class_type,rescale, rotation_range,width_shift_range,height_shift_range, 
-                                       shear_range, zoom_range):
-    
-    
-    train_datagen = ImageDataGenerator(
-                                        rescale=1./ rescale,
-                                        rotation_range= rotation_range,
-                                        width_shift_range= width_shift_range,
-                                        height_shift_range= height_shift_range,
-                                        shear_range= shear_range,
-                                        zoom_range= zoom_range,
-                                        horizontal_flip= True,
-                                        fill_mode='nearest')
+    def rescale(self, rescale):
+        
+        """
+        Returning Scaled Image Generator Both Train And Validation Generator
+
+        -- rescale: <int> [1, 255] rescaling by 1 / rescale
+        
+        Example:
+            rescale = 255
+            rescale will be 1 / 255
+        
+        
+        Return train_generator, validation_generator
+        """
+        # All images will be rescaled by 1./255.
+        train_datagen = ImageDataGenerator(rescale = 1.0/ rescale)
+        test_datagen  = ImageDataGenerator(rescale = 1.0/ rescale)
+
+        # --------------------
+        # Flow training images in batches of 20 using train_datagen generator
+        # --------------------
+        self.train_generator = train_datagen.flow_from_directory(self.train_dir,
+                                                            batch_size= self.batch_size,
+                                                            class_mode=  self.class_type,
+                                                            target_size= self.target_size)     
+        # --------------------
+        # Flow validation images in batches of 20 using test_datagen generator
+        # --------------------
+        self.valid_generator =  test_datagen.flow_from_directory(self.validation_dir,
+                                                                batch_size= self.batch_size,
+                                                                class_mode  =  self.class_type,
+                                                                target_size = self.target_size)
+        
+        return self.train_generator , self.valid_generator
 
 
 
-    validation_datagen = ImageDataGenerator(rescale=1/ rescale)
+    
+    def rescale_augment(self, rescale, rotation_range, width_shift_range, height_shift_range, 
+                                        shear_range, zoom_range, horizontal_flip = True):
+        
+        """
+        Returning Augmented Image Generator of Train and validation images..
+        
+        -- rescale: <int>          rescaling images in [1, 255]
+        -- rotation_range: <float> is in degree
+        -- width_shift_range:  <float>  shift the images in width
+        -- height_shift_range: <float>  shift height or shift in relative of height
+        -- shear_range: <float>         change in shear
+        -- zoom_range: <float>          zooming level
+        -- horizontal_flip: <Boolean>   Default True
 
-    train_generator_augmented = train_datagen.flow_from_directory(train_dir,
-                                                        target_size= target_size,  
-                                                        batch_size= batch_size,
-                                                        class_mode= class_type)
+        Return train_generator, validation_generator
+        """
+        
+        train_datagen = ImageDataGenerator(
+                                            rescale=1./ rescale,
+                                            rotation_range= rotation_range,
+                                            width_shift_range= width_shift_range,
+                                            height_shift_range= height_shift_range,
+                                            shear_range= shear_range,
+                                            zoom_range= zoom_range,
+                                            horizontal_flip= horizontal_flip,
+                                            fill_mode='nearest')
 
-    validation_generator_augmented = validation_datagen.flow_from_directory(validation_dir,  
-                                                                target_size= target_size,
-                                                                batch_size= batch_size,
-                                                                class_mode= class_type)
-    
-    return train_generator_augmented , validation_generator_augmented
-    
-    
+
+
+        validation_datagen = ImageDataGenerator(rescale=1/ rescale)
+
+        self.train_aug_generator = train_datagen.flow_from_directory(self.train_dir,
+                                                            target_size= self.target_size,  
+                                                            batch_size= self.batch_size,
+                                                            class_mode= self.class_type)
+
+        self.valid_aug_generator = validation_datagen.flow_from_directory(self.validation_dir,  
+                                                                    target_size= self.target_size,
+                                                                    batch_size= self.batch_size,
+                                                                    class_mode= self.class_type)
+        
+        return self.train_aug_generator, self.valid_aug_generator
+        
+        
+
     
                             ###---- Callbacks ----###
     
 
     
-class my_callbacks(keras.callbacks.Callback):
+# class my_callbacks(keras.callbacks.Callback):
 
-    def on_epoch_end(self, epoch, logd = {}, desire_loss):
+#     def on_epoch_end(self, epoch, logd = {}, desire_loss):
 
-        if (logs.get('loss') < desire_loss):
-            self.model.stop_training = True
+#         if (logs.get('loss') < desire_loss):
+#             self.model.stop_training = True
 
     
     
@@ -98,19 +146,33 @@ class my_callbacks(keras.callbacks.Callback):
         
 # Checkpoints are the each epoch model data
     
-def training_with_loading(filepath, model):
-    
-    from keras.callbacks import ModelCheckpoint
-    
-    filepath = 'model.h5'
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-    callbacks_list = [checkpoint]
+    def train(self, modelname, model, epochs, aug = False):
+        
+        """
+        Continue Training with a loop of saving model &
+        Return history
+
+        -- filepath: <str> Name the model to save
+        -- model: <Object> ML / NeuralNetwork Model by Tensorflow
+        -- epochs: <int> Number of Epochs
+        -- aug: <int> generator to use.. Default False mean without augmented generator.
 
 
-    # fit the model
-    history = model.fit_generator(train_generator,validation_data= validation_generator, epochs= 20, callbacks=callbacks_list)
-    
-    return history
+        """
+
+        from keras.callbacks import ModelCheckpoint
+        
+        checkpoint = ModelCheckpoint(modelname, monitor='loss', verbose=1, save_best_only=True, mode='min')
+        callbacks_list = [checkpoint]
+
+
+        # fit the model
+        if not aug:
+            self.history = model.fit_generator(self.train_generator,validation_data= self.valid_generator, epochs= epochs, callbacks=callbacks_list)
+        else:
+            self.history = model.fit_generator(self.train_aug_generator,validation_data= self.valid_aug_generator, epochs= epochs, callbacks=callbacks_list)
+
+        return self.history
 
 
 
@@ -121,20 +183,20 @@ def training_with_loading(filepath, model):
 
 
 
-def load_fit_again_saved_model(x_train, filepath):
-    # load the model
-    
-    new_model = load_model(filepath)
-    assert_allclose(model.predict(x_train),
-                    new_model.predict(x_train),
-                    1e-5)
-
-    # fit the model
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-    callbacks_list = [checkpoint]
-    new_model.fit(x_train, y_train, epochs=5, batch_size=50, callbacks=callbacks_list)
+    # def load_fit_again_saved_model(self, x_train, filepath):
+    #     # load the model
         
-    
+    #     new_model = load_model(filepath)
+    #     assert_allclose(model.predict(x_train),
+    #                     new_model.predict(x_train),
+    #                     1e-5)
+
+    #     # fit the model
+    #     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    #     callbacks_list = [checkpoint]
+    #     new_model.fit(x_train, y_train, epochs=5, batch_size=50, callbacks=callbacks_list)
+            
+        
 
     
     
@@ -146,30 +208,68 @@ def load_fit_again_saved_model(x_train, filepath):
             
             
 
-def evaluate_the_model_performance(history):
+    def evaluate_performance(self,modelname, model, epochs, aug = False):
+        """
+        Plotting the evaluation performance of the model
+
+        run after running train()
+
+        if you are running before train() then provide following:
+            -- modelname: <str> name the model to be saved
+            -- model: <object> provide custom model 
+            -- epochs: <int> Number of Epochs
+            -- aug: <int> generator to use.. Default False mean without augmented generator.
+
+        """
+
+        if self.history is not None:
+
+            acc = self.history.history['accuracy']
+            val_acc = self.history.history['val_accuracy']
+            loss = self.history.history['loss']
+            val_loss = self.history.history['val_loss']
+
+            epochs = range(len(acc))
+
+            plt.plot(epochs, acc, 'r', label='Training accuracy')
+            plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
+            plt.title('Training and validation accuracy')
+
+            plt.figure()
+
+            plt.plot(epochs, loss, 'r', label='Training Loss')
+            plt.plot(epochs, val_loss, 'b', label='Validation Loss')
+            plt.title('Training and validation loss')
+            plt.legend()
+
+            plt.show()
+
+
+        else:
+
+            self.train(modelname, model, epochs, aug)
+            acc = self.history.history['accuracy']
+            val_acc = self.history.history['val_accuracy']
+            loss = self.history.history['loss']
+            val_loss = self.history.history['val_loss']
+
+            epochs = range(len(acc))
+
+            plt.plot(epochs, acc, 'r', label='Training accuracy')
+            plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
+            plt.title('Training and validation accuracy')
+
+            plt.figure()
+
+            plt.plot(epochs, loss, 'r', label='Training Loss')
+            plt.plot(epochs, val_loss, 'b', label='Validation Loss')
+            plt.title('Training and validation loss')
+            plt.legend()
+
+            plt.show()
+
+
     
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-
-    epochs = range(len(acc))
-
-    plt.plot(epochs, acc, 'r', label='Training accuracy')
-    plt.plot(epochs, val_acc, 'b', label='Validation accuracy')
-    plt.title('Training and validation accuracy')
-
-    plt.figure()
-
-    plt.plot(epochs, loss, 'r', label='Training Loss')
-    plt.plot(epochs, val_loss, 'b', label='Validation Loss')
-    plt.title('Training and validation loss')
-    plt.legend()
-
-    plt.show()
-
-
-    
     
 
     
@@ -177,7 +277,7 @@ def evaluate_the_model_performance(history):
     
     
 
-                            ###---- Image Flow In Conolutional Layers ----###
+                            ###---- Image Flow In Convolutional Layers ----###
     
     
     
